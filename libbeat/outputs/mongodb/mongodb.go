@@ -20,7 +20,6 @@ package mongodb
 import (
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
-	"github.com/elastic/beats/v7/libbeat/logp"
 	"github.com/elastic/beats/v7/libbeat/outputs"
 )
 
@@ -34,17 +33,26 @@ func init() {
 
 func makeMongodb(
 	_ outputs.IndexManager,
-	beat beat.Info,
+	_ beat.Info,
 	observer outputs.Observer,
 	cfg *common.Config,
 ) (outputs.Group, error) {
-	log := logp.NewLogger(logSelector)
+	config := defaultConfig
+	if err := cfg.Unpack(&config); err != nil {
+		return outputs.Fail(err)
+	}
+	var err error
+	clients := make([]outputs.NetworkClient, config.ConnectionCount)
+	for i := 0; i < config.ConnectionCount; i++ {
+		var client outputs.NetworkClient
+		client, err = NewClient(config, observer)
+		if err != nil {
+			return outputs.Fail(err)
+		}
 
-	log.Debug("initialize mongodb output")
-
-	if !cfg.HasField("bulk_max_size") {
-		cfg.SetInt("bulk_max_size", -1, defaultBulkSize)
+		client = outputs.WithBackoff(client, config.Backoff.Init, config.Backoff.Max)
+		clients[i] = client
 	}
 
-	return outputs.Success(config.BulkMaxSize, retry, client)
+	return outputs.SuccessNet(false, config.BulkMaxSize, config.MaxRetries, clients)
 }

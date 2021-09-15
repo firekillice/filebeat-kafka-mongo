@@ -162,6 +162,7 @@ require (
 	go.elastic.co/ecszap v0.3.0
 	go.elastic.co/go-licence-detector v0.4.0
 	go.etcd.io/bbolt v1.3.4
+	go.mongodb.org/mongo-driver v1.7.2 // indirect
 	go.uber.org/atomic v1.5.0
 	go.uber.org/multierr v1.3.0
 	go.uber.org/zap v1.14.0
